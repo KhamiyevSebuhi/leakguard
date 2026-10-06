@@ -13,7 +13,7 @@ MARKER = "# Managed by LeakGuard v1"
 def hook_script(python: str | None = None) -> str:
     """Use this installation's absolute interpreter, quoted for Git's POSIX shell."""
     executable = python or sys.executable
-    return "#!/bin/sh\n" + MARKER + "\nexec " + shlex.quote(executable.replace("\\", "/")) + " -m leakguard scan --staged\n"
+    return "#!/bin/sh\n" + MARKER + "\nexec " + shlex.quote(executable.replace("\\", "/")) + " -I -m leakguard scan --staged\n"
 
 
 def hook_path(root: Path) -> Path:

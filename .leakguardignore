@@ -12,4 +12,5 @@ coverage.json
 coverage.xml
 htmlcov/
 *.sarif
-
+# Golden snapshots contain high-entropy fingerprint digests, never credentials.
+tests/golden/expected/
