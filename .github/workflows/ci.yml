@@ -1,0 +1,58 @@
+name: LeakGuard quality
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ['3.11', '3.12']
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install -e ".[dev]"
+      - run: ruff check .
+      - run: pytest --cov=leakguard --cov-report=term-missing --cov-fail-under=90
+      - run: bash examples/demo.sh
+      - name: Dogfood LeakGuard
+        run: leakguard scan . --format sarif > leakguard.sarif
+      - name: Upload SARIF
+        if: always() && matrix.python == '3.12' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: leakguard.sarif
+          category: leakguard
+
+  mutation:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -e ".[dev]"
+      - run: pytest -q
+      - run: mutmut run --max-children 2
+      - name: Record mutation results
+        if: always()
+        run: mutmut results --all true > mutation-results.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-results
+          path: |
+            mutation-results.txt
+            mutants/
