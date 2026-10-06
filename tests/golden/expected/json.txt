@@ -1,0 +1,16 @@
+{
+  "version": "0.1.0",
+  "findings": [
+    {
+      "rule_id": "aws-access-key",
+      "severity": "HIGH",
+      "file": "sample.env",
+      "line": 2,
+      "column": 1,
+      "redacted_snippet": "********************",
+      "fingerprint": "1e4549cd52e8a356d1cad58b428aff0b4f7c72b636c62e970a824b6a43a70819",
+      "commit": null,
+      "author": null
+    }
+  ]
+}

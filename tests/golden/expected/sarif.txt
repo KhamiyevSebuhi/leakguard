@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "LeakGuard",
+          "version": "0.1.0",
+          "rules": [
+            {
+              "id": "aws-access-key",
+              "shortDescription": {
+                "text": "AWS access key ID"
+              },
+              "properties": {
+                "severity": "HIGH"
+              }
+            },
+            {
+              "id": "aws-secret-key",
+              "shortDescription": {
+                "text": "AWS secret key assignment"
+              },
+              "properties": {
+                "severity": "CRITICAL"
+              }
+            },
+            {
+              "id": "github-token",
+              "shortDescription": {
+                "text": "GitHub access token"
+              },
+              "properties": {
+                "severity": "CRITICAL"
+              }
+            },
+            {
+              "id": "slack-token",
+              "shortDescription": {
+                "text": "Slack access token"
+              },
+              "properties": {
+                "severity": "HIGH"
+              }
+            },
+            {
+              "id": "stripe-key",
+              "shortDescription": {
+                "text": "Stripe live API key"
+              },
+              "properties": {
+                "severity": "CRITICAL"
+              }
+            },
+            {
+              "id": "google-api-key",
+              "shortDescription": {
+                "text": "Google API key"
+              },
+              "properties": {
+                "severity": "HIGH"
+              }
+            },
+            {
+              "id": "jwt",
+              "shortDescription": {
+                "text": "JSON Web Token"
+              },
+              "properties": {
+                "severity": "HIGH"
+              }
+            },
+            {
+              "id": "private-key",
+              "shortDescription": {
+                "text": "PEM private key marker (including RSA, EC, OpenSSH, PGP)"
+              },
+              "properties": {
+                "severity": "CRITICAL"
+              }
+            },
+            {
+              "id": "generic-secret",
+              "shortDescription": {
+                "text": "Credential assignment"
+              },
+              "properties": {
+                "severity": "MEDIUM"
+              }
+            },
+            {
+              "id": "database-url",
+              "shortDescription": {
+                "text": "Database URL containing a password"
+              },
+              "properties": {
+                "severity": "HIGH"
+              }
+            },
+            {
+              "id": "high-entropy",
+              "shortDescription": {
+                "text": "High-entropy base64/hex-like string"
+              },
+              "properties": {
+                "severity": "LOW"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "aws-access-key",
+          "level": "error",
+          "message": {
+            "text": "Potential credential: ********************"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "sample.env"
+                },
+                "region": {
+                  "startLine": 2,
+                  "startColumn": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "leakguard/v1": "1e4549cd52e8a356d1cad58b428aff0b4f7c72b636c62e970a824b6a43a70819"
+          },
+          "properties": {
+            "commit": null,
+            "author": null
+          }
+        }
+      ]
+    }
+  ]
+}
