@@ -37,3 +37,11 @@ def test_errors(repo: Path) -> None:
     install(repo)
     with patch.object(Path, "unlink", side_effect=PermissionError), pytest.raises(GitError):
         uninstall(repo)
+
+
+def test_symlink_rejected(repo: Path) -> None:
+    with patch.object(Path, "is_symlink", return_value=True):
+        with pytest.raises(GitError):
+            install(repo, force=True)
+        with pytest.raises(GitError):
+            uninstall(repo)

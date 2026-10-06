@@ -44,4 +44,3 @@ def fingerprint(rule_id: str, file: str, value: str, line: str) -> str:
     value_hash = hashlib.sha256(value.encode("utf-8", errors="surrogatepass")).hexdigest()
     payload = json.dumps([rule_id, file.replace("\\", "/"), value_hash, " ".join(line.split())])
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
-

@@ -57,7 +57,9 @@ def test_file_errors(tmp_path: Path) -> None:
     path.write_text("clean")
     with patch.object(Path, "open", side_effect=PermissionError), pytest.raises(LeakGuardError):
         scan_file(path, tmp_path)
-    with patch("leakguard.scanner.os.walk", side_effect=lambda *a, **kw: kw["onerror"](PermissionError())):
+    with patch(
+        "leakguard.scanner.os.walk", side_effect=lambda *a, **kw: kw["onerror"](PermissionError())
+    ):
         with pytest.raises(LeakGuardError):
             scan_directory(tmp_path)
 

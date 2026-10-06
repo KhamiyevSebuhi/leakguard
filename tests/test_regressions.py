@@ -4,13 +4,20 @@ from pathlib import Path
 
 import pytest
 
-from leakguard.gitutils import git
+from leakguard.baseline import load_baseline
+from leakguard.config import Config
+from leakguard.errors import BaselineError
+from leakguard.gitutils import git, scan_history
 from leakguard.hook import install
+from leakguard.ignore import Ignore
 from leakguard.scanner import scan_text
 from tests.fakes import samples
 
 
-@pytest.mark.parametrize("expression", ["re.compile(pattern)", "samples()[name]", "value.split(':')", "os.environ['KEY']"])
+@pytest.mark.parametrize(
+    "expression",
+    ["re.compile(pattern)", "samples()[name]", "value.split(':')", "os.environ['KEY']"],
+)
 def test_python_expression_is_not_literal(expression: str) -> None:
     # Self-scanning initially reported regex objects and function calls as credentials.
     assert scan_text("token = " + expression, "source.py") == []
@@ -30,4 +37,23 @@ def test_overlapping_report_masks_entire_line() -> None:
     second = samples()["github-token"]
     findings = scan_text(first + " " + second, "file")
     assert len(findings) == 2
-    assert all(first not in f.redacted_snippet and second not in f.redacted_snippet for f in findings)
+    assert all(
+        first not in f.redacted_snippet and second not in f.redacted_snippet for f in findings
+    )
+
+
+def test_deep_json_raises_domain_error(tmp_path: Path) -> None:
+    # Adversarial review found JSON recursion escaped the baseline exception contract.
+    path = tmp_path / "baseline"
+    path.write_text("[" * 2000 + "]" * 2000)
+    with pytest.raises(BaselineError):
+        load_baseline(path)
+
+
+def test_binary_history_ignores_forced_text_diff(repo: Path) -> None:
+    # Attributes can force text diffs for binary blobs; inspect the blob itself.
+    (repo / ".gitattributes").write_text("*.dat diff\n")
+    (repo / "binary.dat").write_bytes(b"\0\n" + samples()["aws-access-key"].encode())
+    git(repo, "add", ".")
+    git(repo, "commit", "-m", "binary")
+    assert scan_history(repo, Config(), Ignore()) == []

@@ -18,10 +18,25 @@ def test_negative(rule: Rule) -> None:
     assert rule.regex.search("ordinary prose with no credentials") is None
 
 
-@pytest.mark.parametrize("value", ["", "changeme", "example", "your_api_key_here", "xxxx", "<token>", "${VAR}", "{{ var }}", "os.environ['VALUE']", "os.getenv('VALUE')", "a" * 40])
+@pytest.mark.parametrize(
+    "value",
+    [
+        "",
+        "changeme",
+        "example",
+        "your_api_key_here",
+        "xxxx",
+        "<token>",
+        "${VAR}",
+        "{{ var }}",
+        "os.environ['VALUE']",
+        "os.getenv('VALUE')",
+        "a" * 40,
+    ],
+)
 def test_placeholder(value: str) -> None:
     assert is_placeholder(value)
 
 
 def test_real_value() -> None:
-    assert not is_placeholder(("Bicycle9!" + "River"))
+    assert not is_placeholder("Bicycle9!" + "River")

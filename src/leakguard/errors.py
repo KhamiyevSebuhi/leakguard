@@ -15,4 +15,3 @@ class GitError(LeakGuardError):
 
 class BaselineError(LeakGuardError):
     """A baseline cannot be read or written safely."""
-

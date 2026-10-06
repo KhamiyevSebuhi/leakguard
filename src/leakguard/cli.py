@@ -27,13 +27,17 @@ class SafeParser(argparse.ArgumentParser):
 
 def parser() -> argparse.ArgumentParser:
     """Construct the command tree and common scan options."""
-    root = SafeParser(prog="leakguard", description="Local secret scanner; all matches are redacted.")
+    root = SafeParser(
+        prog="leakguard", description="Local secret scanner; all matches are redacted."
+    )
     root.add_argument("--version", action="version", version=__version__)
     commands = root.add_subparsers(dest="command", required=True)
     for name in ("scan", "scan-history"):
         command = commands.add_parser(name)
         command.add_argument("--format", choices=("text", "json", "sarif"), default="text")
-        command.add_argument("--min-severity", type=str.upper, choices=tuple(s.name for s in Severity), default="LOW")
+        command.add_argument(
+            "--min-severity", type=str.upper, choices=tuple(s.name for s in Severity), default="LOW"
+        )
         command.add_argument("--baseline", type=Path)
         command.add_argument("--config", type=Path)
         command.add_argument("--no-color", action="store_true")
@@ -57,13 +61,21 @@ def parser() -> argparse.ArgumentParser:
 def _settings(args: argparse.Namespace, root: Path) -> tuple[Config, Ignore]:
     explicit = getattr(args, "config", None)
     default = root / ".leakguard.toml"
-    config = load_config(explicit) if explicit is not None else load_config(default) if default.exists() else Config()
+    config = (
+        load_config(explicit)
+        if explicit is not None
+        else load_config(default)
+        if default.exists()
+        else Config()
+    )
     size = getattr(args, "max_file_size", None)
     if size is not None:
         if size <= 0:
             raise LeakGuardError("Maximum file size must be positive.")
         config = replace(config, max_file_size=size)
-    return config, load_ignore(root / ".leakguardignore", config.ignore_paths + (".leakguard-baseline.json",))
+    return config, load_ignore(
+        root / ".leakguardignore", config.ignore_paths + (".leakguard-baseline.json",)
+    )
 
 
 def _files(paths: list[str], root: Path, config: Config, ignore: Ignore) -> list[Finding]:
@@ -112,7 +124,11 @@ def _run(args: argparse.Namespace) -> int:
     if baseline is None and (root / ".leakguard-baseline.json").exists():
         baseline = root / ".leakguard-baseline.json"
     known = load_baseline(baseline) if baseline is not None else set()
-    findings = [f for f in findings if f.severity >= Severity[args.min_severity] and f.fingerprint not in known]
+    findings = [
+        f
+        for f in findings
+        if f.severity >= Severity[args.min_severity] and f.fingerprint not in known
+    ]
     if args.format == "json":
         report = json_report(findings)
     elif args.format == "sarif":

@@ -61,3 +61,25 @@ def test_git_failures(tmp_path: Path) -> None:
     for error in (FileNotFoundError(), subprocess.TimeoutExpired("git", 30)):
         with patch("leakguard.gitutils.subprocess.run", side_effect=error), pytest.raises(GitError):
             git(tmp_path, "status")
+
+
+def test_index_modes(tmp_path: Path) -> None:
+    oid = "a" * 40
+    for mode in ("120000", "160000"):
+        with patch(
+            "leakguard.gitutils.git", side_effect=[b"file\0", f"{mode} {oid} 0\tfile\0".encode()]
+        ):
+            assert staged_content(tmp_path, Config(), Ignore()) == []
+    with patch(
+        "leakguard.gitutils.git", side_effect=[b"file\0", f"100644 {oid} 1\tfile\0".encode()]
+    ):
+        with pytest.raises(GitError):
+            staged_content(tmp_path, Config(), Ignore())
+
+
+def test_history_nonregular(repo: Path) -> None:
+    (repo / "target").write_text("clean")
+    oid = git(repo, "hash-object", "-w", "target").decode().strip()
+    git(repo, "update-index", "--add", "--cacheinfo", f"120000,{oid},link")
+    git(repo, "commit", "-m", "symlink")
+    assert scan_history(repo, Config(), Ignore()) == []

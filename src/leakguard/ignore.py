@@ -43,7 +43,14 @@ def load_ignore(path: Path, extra: tuple[str, ...] = ()) -> Ignore:
         return Ignore(extra)
     except (OSError, UnicodeError):
         raise ConfigError("Cannot read ignore file.") from None
-    return Ignore(extra + tuple(line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")))
+    return Ignore(
+        extra
+        + tuple(
+            line.strip()
+            for line in text.splitlines()
+            if line.strip() and not line.lstrip().startswith("#")
+        )
+    )
 
 
 def inline_ignored(line: str, rule_id: str) -> bool:

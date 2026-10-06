@@ -31,4 +31,3 @@ def high_entropy(text: str, threshold: float = 4.5) -> list[tuple[int, str]]:
         if shannon_entropy(value) >= limit:
             results.append((match.start(), value))
     return results
-

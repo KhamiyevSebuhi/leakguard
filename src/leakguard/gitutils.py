@@ -14,7 +14,13 @@ from leakguard.scanner import SKIP_DIRS, scan_bytes, scan_text
 def git(root: Path, *args: str) -> bytes:
     """Run Git with a timeout and replace potentially sensitive stderr."""
     try:
-        result = subprocess.run(["git", "--no-pager", "-c", "core.quotePath=false", *args], cwd=root, capture_output=True, timeout=30, check=False)
+        result = subprocess.run(
+            ["git", "--no-pager", "-c", "core.quotePath=false", *args],
+            cwd=root,
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
     except (OSError, subprocess.TimeoutExpired):
         raise GitError("Git is unavailable or timed out.") from None
     if result.returncode:
@@ -28,27 +34,60 @@ def repository_root(path: Path) -> Path:
 
 
 def _paths(data: bytes) -> list[str]:
-    return sorted({part.decode("utf-8", errors="surrogateescape") for part in data.split(b"\0") if part})
+    return sorted(
+        {part.decode("utf-8", errors="surrogateescape") for part in data.split(b"\0") if part}
+    )
 
 
 def changed_files(root: Path, since: str, until: str = "HEAD") -> list[str]:
     """List nondeleted paths changed between two verified commit revisions."""
     first = _revision(root, since)
     last = _revision(root, until)
-    return _paths(git(root, "diff", "--name-only", "--no-renames", "--diff-filter=ACMT", "-z", first, last, "--"))
+    return _paths(
+        git(
+            root,
+            "diff",
+            "--name-only",
+            "--no-renames",
+            "--diff-filter=ACMT",
+            "-z",
+            first,
+            last,
+            "--",
+        )
+    )
 
 
 def _revision(root: Path, revision: str) -> str:
-    return git(root, "rev-parse", "--verify", "--end-of-options", revision + "^{commit}").decode("ascii").strip()
+    return (
+        git(root, "rev-parse", "--verify", "--end-of-options", revision + "^{commit}")
+        .decode("ascii")
+        .strip()
+    )
 
 
 def _included(path: str, ignore: Ignore) -> bool:
-    return not ignore.matches(path) and not any(part in SKIP_DIRS for part in Path(path).parts) and path != ".leakguard-baseline.json"
+    return (
+        not ignore.matches(path)
+        and not any(part in SKIP_DIRS for part in Path(path).parts)
+        and path != ".leakguard-baseline.json"
+    )
 
 
 def staged_content(root: Path, config: Config, ignore: Ignore) -> list[tuple[str, bytes]]:
     """Read changed regular blobs from the index, not the working tree."""
-    names = _paths(git(root, "diff", "--cached", "--name-only", "--no-renames", "--diff-filter=ACMT", "-z", "--"))
+    names = _paths(
+        git(
+            root,
+            "diff",
+            "--cached",
+            "--name-only",
+            "--no-renames",
+            "--diff-filter=ACMT",
+            "-z",
+            "--",
+        )
+    )
     blobs: list[tuple[str, bytes]] = []
     for name in names:
         if not _included(name, ignore):
@@ -69,7 +108,11 @@ def staged_content(root: Path, config: Config, ignore: Ignore) -> list[tuple[str
 
 def scan_staged(root: Path, config: Config, ignore: Ignore) -> list[Finding]:
     """Scan the full contents of added/modified staged regular files."""
-    return [finding for name, data in staged_content(root, config, ignore) for finding in scan_bytes(data, name, config)]
+    return [
+        finding
+        for name, data in staged_content(root, config, ignore)
+        for finding in scan_bytes(data, name, config)
+    ]
 
 
 def added_lines(patch: str) -> list[tuple[int, str]]:
@@ -89,7 +132,9 @@ def added_lines(patch: str) -> list[tuple[int, str]]:
     return result
 
 
-def scan_history(root: Path, config: Config, ignore: Ignore, since: str | None = None) -> list[Finding]:
+def scan_history(
+    root: Path, config: Config, ignore: Ignore, since: str | None = None
+) -> list[Finding]:
     """Scan every reachable commit's additions, including subsequently removed values.
 
     With since, scan since..HEAD (exclusive). Without it, visit all refs.
@@ -100,8 +145,27 @@ def scan_history(root: Path, config: Config, ignore: Ignore, since: str | None =
     commits = git(root, "log", "--format=%H", *revision, "--").decode("ascii").splitlines()
     findings: list[Finding] = []
     for commit in commits:
-        author = git(root, "show", "-s", "--format=%an", commit).decode("utf-8", errors="replace").strip()
-        names = _paths(git(root, "diff-tree", "--root", "--no-commit-id", "--name-only", "--no-renames", "--diff-filter=ACMT", "-r", "-m", "-z", commit, "--"))
+        author = (
+            git(root, "show", "-s", "--format=%an", commit)
+            .decode("utf-8", errors="replace")
+            .strip()
+        )
+        names = _paths(
+            git(
+                root,
+                "diff-tree",
+                "--root",
+                "--no-commit-id",
+                "--name-only",
+                "--no-renames",
+                "--diff-filter=ACMT",
+                "-r",
+                "-m",
+                "-z",
+                commit,
+                "--",
+            )
+        )
         for name in names:
             if not _included(name, ignore):
                 continue
@@ -113,7 +177,29 @@ def scan_history(root: Path, config: Config, ignore: Ignore, since: str | None =
                 continue
             if int(git(root, "cat-file", "-s", oid.decode("ascii"))) > config.max_file_size:
                 continue
-            patch = git(root, "log", "-1", "-p", "--format=", "--root", "--diff-merges=first-parent", "--no-ext-diff", "--no-textconv", "--no-renames", "--unified=0", commit, "--", ":(literal)" + name)
+            if b"\0" in git(root, "cat-file", "blob", oid.decode("ascii")):
+                continue
+            patch = git(
+                root,
+                "log",
+                "-1",
+                "--no-walk",
+                "-p",
+                "--format=",
+                "--root",
+                "--diff-merges=first-parent",
+                "--no-ext-diff",
+                "--no-textconv",
+                "--no-renames",
+                "--unified=0",
+                commit,
+                "--",
+                ":(literal)" + name,
+            )
             for number, line in added_lines(patch.decode("utf-8", errors="replace")):
-                findings.extend(scan_text(line, name, config, line_offset=number - 1, commit=commit, author=author))
+                findings.extend(
+                    scan_text(
+                        line, name, config, line_offset=number - 1, commit=commit, author=author
+                    )
+                )
     return findings

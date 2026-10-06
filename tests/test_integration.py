@@ -14,7 +14,9 @@ def test_hook_blocks_and_allows(repo: Path) -> None:
     path = repo / "credentials.env"
     path.write_text(samples()["aws-access-key"])
     git(repo, "add", ".")
-    blocked = subprocess.run(["git", "commit", "-m", "blocked"], cwd=repo, capture_output=True, text=True)
+    blocked = subprocess.run(
+        ["git", "commit", "-m", "blocked"], cwd=repo, capture_output=True, text=True
+    )
     assert blocked.returncode != 0
     combined = blocked.stdout + blocked.stderr
     assert "aws-access-key" in combined

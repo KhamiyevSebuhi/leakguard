@@ -24,7 +24,9 @@ def test_known_entropy() -> None:
     assert shannon_entropy(samples()["high-entropy"]) > shannon_entropy("a" * 32)
 
 
-@pytest.mark.parametrize("value", ["a" * 30, "1234567890" * 3, "abcdefghijklmnopqrstuvwxyz", "short"])
+@pytest.mark.parametrize(
+    "value", ["a" * 30, "1234567890" * 3, "abcdefghijklmnopqrstuvwxyz", "short"]
+)
 def test_entropy_negatives(value: str) -> None:
     assert high_entropy(value) == []
 

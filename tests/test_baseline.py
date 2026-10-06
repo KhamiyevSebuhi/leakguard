@@ -20,7 +20,19 @@ def test_roundtrip(values: set[str]) -> None:
         assert load_baseline(path) == values
 
 
-@pytest.mark.parametrize("text", ["", "null", "[]", "{}", '{"version": 2, "fingerprints": []}', '{"version": true, "fingerprints": []}', '{"version": 1, "fingerprints": ["secret"]}', '{"version": 1, "fingerprints": 3}'])
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        "null",
+        "[]",
+        "{}",
+        '{"version": 2, "fingerprints": []}',
+        '{"version": true, "fingerprints": []}',
+        '{"version": 1, "fingerprints": ["secret"]}',
+        '{"version": 1, "fingerprints": 3}',
+    ],
+)
 def test_invalid(tmp_path: Path, text: str) -> None:
     path = tmp_path / "bad"
     path.write_text(text)

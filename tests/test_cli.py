@@ -10,7 +10,9 @@ from leakguard.gitutils import git
 from tests.fakes import samples
 
 
-def test_scan(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+def test_scan(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
     monkeypatch.chdir(tmp_path)
     path = tmp_path / "file.env"
     path.write_text(samples()["generic-secret"])

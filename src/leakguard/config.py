@@ -31,7 +31,9 @@ def custom_pattern(pattern: str) -> re.Pattern[str]:
     """
     if not pattern or len(pattern) > 256:
         raise ConfigError("Invalid custom rule pattern.")
-    token = re.compile(r"(?:\[[A-Za-z0-9_ /+=^-]{1,80}\]|[A-Za-z0-9_ :=/@-])(?:\{([0-9]{1,3})(?:,([0-9]{1,3}))?\})?")
+    token = re.compile(
+        r"(?:\[[A-Za-z0-9_ /+=^-]{1,80}\]|[A-Za-z0-9_ :=/@-])(?:\{([0-9]{1,3})(?:,([0-9]{1,3}))?\})?"
+    )
     pos = 0
     repeats = 0
     while pos < len(pattern):
@@ -70,14 +72,24 @@ def load_config(path: Path | None = None) -> Config:
         if path is None:
             return Config()
         raise ConfigError("Configuration file not found.") from None
-    except (OSError, UnicodeError, tomllib.TOMLDecodeError):
+    except (OSError, UnicodeError, tomllib.TOMLDecodeError, RecursionError):
         raise ConfigError("Cannot read valid TOML configuration.") from None
-    allowed = {"disabled_rules", "custom_rules", "entropy_threshold", "ignore_paths", "max_file_size"}
+    allowed = {
+        "disabled_rules",
+        "custom_rules",
+        "entropy_threshold",
+        "ignore_paths",
+        "max_file_size",
+    }
     if data.keys() - allowed:
         raise ConfigError("Unknown configuration option.")
     threshold = data.get("entropy_threshold", 4.5)
     size = data.get("max_file_size", 1024 * 1024)
-    if type(threshold) not in (int, float) or not math.isfinite(threshold) or not 0 < threshold <= 6:
+    if (
+        type(threshold) not in (int, float)
+        or not math.isfinite(threshold)
+        or not 0 < threshold <= 6
+    ):
         raise ConfigError("entropy_threshold must be finite and between 0 and 6.")
     if type(size) is not int or size <= 0:
         raise ConfigError("max_file_size must be a positive integer.")
@@ -97,7 +109,15 @@ def load_config(path: Path | None = None) -> Config:
             severity = Severity[item["severity"].upper()]
         except KeyError:
             raise ConfigError("Invalid custom rule severity.") from None
-        rules.append(Rule(item["id"], item["description"], custom_pattern(item["pattern"]), severity, credential))
+        rules.append(
+            Rule(
+                item["id"],
+                item["description"],
+                custom_pattern(item["pattern"]),
+                severity,
+                credential,
+            )
+        )
         ids.add(item["id"])
     disabled = _strings(data, "disabled_rules")
     if set(disabled) - ids:

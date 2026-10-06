@@ -14,3 +14,5 @@ htmlcov/
 *.sarif
 # Golden snapshots contain high-entropy fingerprint digests, never credentials.
 tests/golden/expected/
+# README contains a verbatim generated JSON report with its fingerprint digest.
+README.md
