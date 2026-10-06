@@ -57,3 +57,24 @@ def test_binary_history_ignores_forced_text_diff(repo: Path) -> None:
     git(repo, "add", ".")
     git(repo, "commit", "-m", "binary")
     assert scan_history(repo, Config(), Ignore()) == []
+
+
+def test_merge_does_not_reattribute_ancestor_patch(repo: Path) -> None:
+    # Review found path-limited git log could walk back and label an ancestor's
+    # patch with the merge hash. --no-walk restricts each query to that commit.
+    (repo / "clean").write_text("clean")
+    git(repo, "add", ".")
+    git(repo, "commit", "-m", "root")
+    git(repo, "checkout", "-b", "side")
+    (repo / "side").write_text("clean side")
+    git(repo, "add", ".")
+    git(repo, "commit", "-m", "side change")
+    git(repo, "checkout", "main")
+    (repo / "credential").write_text(samples()["aws-access-key"])
+    git(repo, "add", ".")
+    git(repo, "commit", "-m", "main addition")
+    original = git(repo, "rev-parse", "HEAD").decode().strip()
+    git(repo, "merge", "--no-ff", "side", "-m", "merge side")
+    findings = scan_history(repo, Config(), Ignore())
+    assert len(findings) == 1
+    assert findings[0].commit == original
